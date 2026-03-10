@@ -1,0 +1,22 @@
+.opencode/plugin_output.txt
+local.properties
+# Gradle
+.gradle/
+build/
+out/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kotlin
+*.kotlin_module
+
+# Logs
+*.log

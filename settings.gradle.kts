@@ -1,0 +1,1 @@
+rootProject.name = "red-ballons-intellij-plugin"

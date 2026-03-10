@@ -1,0 +1,89 @@
+package com.redballoons.plugin.actions
+
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.wm.ToolWindowManager
+import com.redballoons.plugin.services.OpencodeService
+import com.redballoons.plugin.ui.PromptPopup
+import com.redballoons.plugin.ui.SearchResultsPanel
+
+/**
+ * Search Mode Action (Ctrl+Shift+/)
+ * AI-powered semantic search across the codebase.
+ * Results are displayed in a Tool Window with clickable navigation.
+ */
+class SearchModeAction : AnAction() {
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val editor = e.getData(CommonDataKeys.EDITOR)
+
+        val popup = PromptPopup(
+            project = project,
+            mode = OpencodeService.ExecutionMode.SEARCH,
+            editor = editor
+        ) { prompt ->
+            executeSearchMode(e, prompt)
+        }
+
+        popup.show()
+    }
+
+    private fun executeSearchMode(e: AnActionEvent, prompt: String) {
+        val project = e.project ?: return
+
+        val service = OpencodeService.getInstance()
+
+        service.execute(
+            project = project,
+            prompt = prompt,
+            mode = OpencodeService.ExecutionMode.SEARCH,
+            workingDirectory = project.basePath
+        ) { result ->
+            if (result.success && result.output.isNotBlank()) {
+                // Parse and display results in Tool Window
+                val searchResults = SearchResultsPanel.parseSearchOutput(
+                    result.output,
+                    project.basePath ?: ""
+                )
+
+                if (searchResults.isEmpty()) {
+                    Messages.showInfoMessage(
+                        project,
+                        "No results found for: $prompt",
+                        "Search Results"
+                    )
+                    return@execute
+                }
+
+                // Open the Tool Window and populate results
+                val toolWindow = ToolWindowManager.getInstance(project)
+                    .getToolWindow("Opencode Search")
+
+                toolWindow?.let { tw ->
+                    tw.show {
+                        val content = tw.contentManager.getContent(0)
+                        val panel = content?.component as? SearchResultsPanel
+                        panel?.setResults(searchResults, prompt)
+                    }
+                }
+            } else if (!result.success) {
+                val errorMsg = result.error.ifBlank { "Search failed" }
+                Messages.showErrorDialog(project, errorMsg, "Opencode Search Error")
+            } else {
+                // Success but no output
+                Messages.showInfoMessage(
+                    project,
+                    "No results found for: $prompt",
+                    "Search Results"
+                )
+            }
+        }
+    }
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.project != null
+    }
+}
