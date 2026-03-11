@@ -10,11 +10,13 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
+import com.redballoons.plugin.model.SearchResult
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Component
@@ -26,6 +28,7 @@ import java.awt.event.MouseEvent
 import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.DefaultListModel
+import javax.swing.JButton
 import javax.swing.JList
 import javax.swing.JPanel
 import javax.swing.ListCellRenderer
@@ -60,11 +63,24 @@ class SearchResultsPanel(private val project: Project) : JPanel(BorderLayout()) 
     private val countLabel = JBLabel("")
 
     init {
-        // Header
+        // Header with Clear button
+        val clearButton = JButton("Clear").apply {
+            addActionListener {
+                clearResults()
+                // Close the tool window panel
+                ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Search")?.hide()
+            }
+        }
+
         val headerPanel = JPanel(BorderLayout()).apply {
             border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
             add(headerLabel, BorderLayout.WEST)
-            add(countLabel, BorderLayout.EAST)
+
+            val rightPanel = JPanel().apply {
+                add(countLabel)
+                add(clearButton)
+            }
+            add(rightPanel, BorderLayout.EAST)
         }
         headerLabel.font = headerLabel.font.deriveFont(Font.BOLD)
 
@@ -126,12 +142,11 @@ class SearchResultsPanel(private val project: Project) : JPanel(BorderLayout()) 
         val virtualFile = LocalFileSystem.getInstance().findFileByPath(result.filePath)
 
         if (virtualFile != null) {
-            // Navigate to the file and position
             val descriptor = OpenFileDescriptor(
                 project,
                 virtualFile,
-                result.lineNumber - 1,  // Convert to 0-indexed
-                result.columnNumber - 1  // Convert to 0-indexed
+                result.lineNumber - 1,
+                result.columnNumber - 1
             )
 
             val editor = FileEditorManager.getInstance(project).openTextEditor(descriptor, true)
@@ -153,8 +168,8 @@ class SearchResultsPanel(private val project: Project) : JPanel(BorderLayout()) 
                     // Add temporary highlight
                     val attributes = TextAttributes().apply {
                         backgroundColor = JBColor(
-                            Color(255, 255, 0, 60),  // Light: yellow
-                            Color(128, 128, 0, 60)   // Dark: olive
+                            Color(255, 255, 0, 60),
+                            Color(128, 128, 0, 60)
                         )
                     }
 
