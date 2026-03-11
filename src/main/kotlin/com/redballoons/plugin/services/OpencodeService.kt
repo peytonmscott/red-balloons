@@ -14,6 +14,7 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.redballoons.plugin.prompt.Context
+import com.redballoons.plugin.prompt.Operation
 import com.redballoons.plugin.settings.RedBalloonsSettings
 import java.io.File
 import java.io.FileWriter
@@ -366,7 +367,7 @@ User search query: $userPrompt
     fun makeRequest(query: String, context: Context, cb: (ExecutionResult) -> Unit) {
         val command = buildCommand(query, context)
         log("Command: ${command.commandLineString}")
-        log("Working dir: ${context.fullPath}")
+        log("Working dir: ${context.workingDirectory}")
 
         runAsync(context, command) { result ->
             cb(result)
@@ -451,21 +452,31 @@ User search query: $userPrompt
 
                 log("Done")
                 val result = if (exitCode == 0 && context.tmpFile.exists()) {
-
                     val tempOutput = context.tmpFile.readText().trim()
-                    val parsed = ParsedOutput.parse(tempOutput)
-                    log("Parsed imports: ${parsed.imports}")
-                    log("Parsed content length: ${parsed.content.length}")
+                    if (context.operation == Operation.VISUAL) {
+                        val parsed = ParsedOutput.parse(tempOutput)
+                        log("Parsed imports: ${parsed.imports}")
+                        log("Parsed content length: ${parsed.content.length}")
 
-                    // TODO: Maybe here we just need to return the file content and let each operation make the parsing
-                    ExecutionResult(
-                        success = parsed.content.isNotBlank(),
-                        output = parsed.content,
-                        error = errorBuilder.toString().trim(),
-                        exitCode = exitCode,
-                        imports = parsed.imports
-                    )
+                        // TODO: Maybe here we just need to return the file content and let each operation make the parsing
+                        ExecutionResult(
+                            success = parsed.content.isNotBlank(),
+                            output = parsed.content,
+                            error = errorBuilder.toString().trim(),
+                            exitCode = exitCode,
+                            imports = parsed.imports
+                        )
+                    } else {
+                        log("Plain output: $tempOutput")
+                        ExecutionResult(
+                            success = true,
+                            output = tempOutput,
+                            error = errorBuilder.toString().trim(),
+                            exitCode = exitCode
+                        )
+                    }
                 } else {
+                    log("Using stdout: ${outputBuilder.toString().trim()}")
                     ExecutionResult(
                         success = exitCode == 0,
                         output = outputBuilder.toString().trim(),

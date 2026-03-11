@@ -10,15 +10,15 @@ import java.util.UUID
 sealed class ContextData(open val project: Project) {
     data class Visual(
         override val project: Project,
-        val buffer: String,
+        val fullPath: String,
         val fileType: String,
         val selectionContext: SelectionContext,
     ) : ContextData(project)
 
-    data class Text(
+    data class Search(
         override val project: Project,
-        val content: String,
-        val fileType: String? = null,
+        val quickFixItems: List<String> = emptyList(),
+        val response: String = "",
     ) : ContextData(project)
 
     data class Custom(
@@ -38,7 +38,6 @@ enum class Operation {
 class Context(
     model: String? = null,
     val workingDirectory: String,
-    val fullPath: String,
     val xid: String = UUID.randomUUID().toString(),
 ) {
     private val items: MutableList<String> = mutableListOf()
@@ -79,7 +78,8 @@ class Context(
 
     private fun finalize() {
         if (data is ContextData.Visual) {
-            val loc = PromptStrings.getFileLocation(fullPath, (data as ContextData.Visual).selectionContext)
+            val visualData = data as ContextData.Visual
+            val loc = PromptStrings.getFileLocation(visualData.fullPath, visualData.selectionContext)
             items.add(loc)
             items.add(PromptStrings.getRangeText((data as ContextData.Visual).selectionContext))
         }

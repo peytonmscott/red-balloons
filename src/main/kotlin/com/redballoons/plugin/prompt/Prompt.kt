@@ -10,14 +10,29 @@ object Prompt {
         val context = Context(
             workingDirectory = project.basePath ?: ".",
             model = settings.modelName,
-            fullPath = selectionContext.filePath
         )
 
         context.operation = Operation.VISUAL
         context.data = ContextData.Visual(
-            project, "", "", selectionContext,
+            project = project,
+            fullPath = selectionContext.filePath,
+            fileType = "",
+            selectionContext = selectionContext,
         )
 
+        return context
+    }
+
+    fun search(project: Project): Context {
+        val settings = RedBalloonsSettings.getInstance()
+        val context = Context(
+            workingDirectory = project.basePath ?: ".",
+            model = settings.modelName,
+        )
+        context.operation = Operation.SEARCH
+        context.data = ContextData.Search(
+            project = project,
+        )
         return context
     }
 }

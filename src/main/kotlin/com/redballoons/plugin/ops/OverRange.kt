@@ -21,7 +21,7 @@ object OverRange {
         // TODO: here we start the visual indicator of the processing
 //        top_status:start()
 //        bottom_status:start()
-        context.startRequest() { result ->
+        context.startRequest { result ->
             cb(result)
         }
     }

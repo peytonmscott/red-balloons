@@ -5,6 +5,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindowManager
+import com.redballoons.plugin.ops.Search
+import com.redballoons.plugin.prompt.Prompt
 import com.redballoons.plugin.services.OpencodeService
 import com.redballoons.plugin.ui.PromptPopup
 import com.redballoons.plugin.ui.SearchResultsPanel
@@ -31,19 +33,14 @@ class SearchModeAction : AnAction() {
         popup.show()
     }
 
-    private fun executeSearchMode(e: AnActionEvent, prompt: String) {
+    private fun executeSearchMode(e: AnActionEvent, userPrompt: String) {
         val project = e.project ?: return
+        val context = Prompt.search(project)
 
-        val service = OpencodeService.getInstance()
+        context.userPrompt = userPrompt
 
-        service.execute(
-            project = project,
-            prompt = prompt,
-            mode = OpencodeService.ExecutionMode.SEARCH,
-            workingDirectory = project.basePath
-        ) { result ->
+        Search(context) { result ->
             if (result.success && result.output.isNotBlank()) {
-                // Parse and display results in Tool Window
                 val searchResults = SearchResultsPanel.parseSearchOutput(
                     result.output,
                     project.basePath ?: ""
@@ -52,21 +49,20 @@ class SearchModeAction : AnAction() {
                 if (searchResults.isEmpty()) {
                     Messages.showInfoMessage(
                         project,
-                        "No results found for: $prompt",
+                        "No results found for: $userPrompt",
                         "Search Results"
                     )
-                    return@execute
+                    return@Search
                 }
 
-                // Open the Tool Window and populate results
                 val toolWindow = ToolWindowManager.getInstance(project)
-                    .getToolWindow("Opencode Search")
+                    .getToolWindow("Red Balloons Search")
 
                 toolWindow?.let { tw ->
                     tw.show {
                         val content = tw.contentManager.getContent(0)
                         val panel = content?.component as? SearchResultsPanel
-                        panel?.setResults(searchResults, prompt)
+                        panel?.setResults(searchResults, userPrompt)
                     }
                 }
             } else if (!result.success) {
@@ -76,7 +72,7 @@ class SearchModeAction : AnAction() {
                 // Success but no output
                 Messages.showInfoMessage(
                     project,
-                    "No results found for: $prompt",
+                    "No results found for: $userPrompt",
                     "Search Results"
                 )
             }

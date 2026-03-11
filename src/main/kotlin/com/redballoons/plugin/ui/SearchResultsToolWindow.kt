@@ -56,7 +56,7 @@ data class SearchResult(
     val lineNumber: Int,
     val columnNumber: Int,
     val highlightLines: Int,
-    val notes: String
+    val notes: String,
 ) {
     val fileName: String
         get() = filePath.substringAfterLast("/")
@@ -231,7 +231,7 @@ class SearchResultsPanel(private val project: Project) : JPanel(BorderLayout()) 
             value: SearchResult,
             index: Int,
             isSelected: Boolean,
-            cellHasFocus: Boolean
+            cellHasFocus: Boolean,
         ): Component {
             // Top line: filename:line:col (highlight X lines)
             val linesInfo = if (value.highlightLines > 1) {
