@@ -13,6 +13,8 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.redballoons.plugin.ops.MakePrompt
+import com.redballoons.plugin.prompt.Prompt
 import com.redballoons.plugin.settings.RedBalloonsSettings
 import java.io.File
 import java.io.FileWriter
@@ -125,7 +127,7 @@ class OpencodeService {
 
         ProgressManager.getInstance().run(object : Task.Backgroundable(
             project,
-            "Opencode: Selection Mode",
+            "Selection Mode",
             true
         ) {
             override fun run(indicator: ProgressIndicator) {
@@ -140,6 +142,7 @@ class OpencodeService {
 
                 try {
                     val fullPrompt = buildSelectionPrompt(userPrompt, context, tempOutputFile)
+                    log("Full Prompt: $fullPrompt")
 
                     val result = executeSync(
                         fullPrompt = fullPrompt,
@@ -148,7 +151,6 @@ class OpencodeService {
                         indicator = indicator
                     )
 
-                    // Read the temp file for the actual output
                     val tempOutput = if (tempOutputFile.exists()) {
                         log("Reading temp file: ${tempOutputFile.absolutePath}")
                         val content = tempOutputFile.readText().trim()
@@ -206,52 +208,35 @@ class OpencodeService {
     }
 
     private fun buildSelectionPrompt(userPrompt: String, context: SelectionContext, tempOutputFile: File): String {
-        val locationString = "${context.filePath}:${context.startLine}-${context.endLine}"
+        val systemPrompt = Prompt.visualSelection(context)
+        val prompt = MakePrompt(userPrompt, systemPrompt)
 
         return """
-You receive a selection in an IDE that you need to replace with new code.
-The selection's contents may contain notes, incorporate the notes every time if there are some.
-Consider the context of the selection and what you are supposed to be implementing.
+            $prompt
 
-<SELECTION_LOCATION>
-$locationString
-</SELECTION_LOCATION>
+            <TEMP_FILE>
+            ${tempOutputFile.absolutePath}
+            </TEMP_FILE>
 
-<SELECTION_CONTENT>
-${context.selectedText}
-</SELECTION_CONTENT>
+            IMPORTANT INSTRUCTIONS:
+            - Write your response to TEMP_FILE (${tempOutputFile.absolutePath}) with TWO sections:
+              1. <IMPORTS> section: List any NEW imports needed that are NOT already in the file. One import per line. If no new imports needed, leave empty.
+              2. <CONTENT> section: The replacement code for the selection.
 
-<FILE_CONTAINING_SELECTION>
-${context.fileContent}
-</FILE_CONTAINING_SELECTION>
+            - Format of TEMP_FILE must be exactly:
+            <IMPORTS>
+            import com.example.NewClass
+            import com.example.AnotherClass
+            </IMPORTS>
+            <CONTENT>
+            // your replacement code here
+            </CONTENT>
 
-<TEMP_FILE>
-${tempOutputFile.absolutePath}
-</TEMP_FILE>
-
-<USER_INSTRUCTION>
-$userPrompt
-</USER_INSTRUCTION>
-
-IMPORTANT INSTRUCTIONS:
-- Write your response to TEMP_FILE (${tempOutputFile.absolutePath}) with TWO sections:
-  1. <IMPORTS> section: List any NEW imports needed that are NOT already in the file. One import per line. If no new imports needed, leave empty.
-  2. <CONTENT> section: The replacement code for the selection.
-
-- Format of TEMP_FILE must be exactly:
-<IMPORTS>
-import com.example.NewClass
-import com.example.AnotherClass
-</IMPORTS>
-<CONTENT>
-// your replacement code here
-</CONTENT>
-
-- Never attempt to read TEMP_FILE, it is purely for output
-- Previous contents can be written over without worry
-- Write raw code only inside each section, no markdown, no explanations, no code fences
-- Only include imports that are NOT already present in FILE_CONTAINING_SELECTION
-- After writing TEMP_FILE once you should be done. End the session.
+            - Never attempt to read TEMP_FILE, it is purely for output
+            - Previous contents can be written over without worry
+            - Write raw code only inside each section, no markdown, no explanations, no code fences
+            - Only include imports that are NOT already present in FILE_CONTAINING_SELECTION
+            - After writing TEMP_FILE once you should be done. End the session.
         """.trimIndent()
     }
 
