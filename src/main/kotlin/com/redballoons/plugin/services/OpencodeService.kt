@@ -97,7 +97,9 @@ class OpencodeService {
                     }
                 }
 
-                override fun processTerminated(event: ProcessEvent) {}
+                override fun processTerminated(event: ProcessEvent) {
+                    log("Models process terminated with exit code: ${event.exitCode}")
+                }
             })
 
             processHandler.startNotify()
@@ -156,7 +158,9 @@ class OpencodeService {
                 log("Mode: ${context.operation}")
 
                 val processHandler = OSProcessHandler(command)
+                processHandler.processInput.close()
                 currentProcess.set(processHandler)
+
                 log("Process started, PID: ${processHandler.process.pid()}")
 
                 val outputBuilder = StringBuilder()
@@ -182,12 +186,11 @@ class OpencodeService {
 
                 processHandler.startNotify()
 
-                // Wait for process to complete, checking for cancellation
-                while (!processHandler.isProcessTerminated) {
+                while (!processHandler.waitFor(100)) {
                     if (indicator.isCanceled) {
+                        log("Cancelled by user")
                         processHandler.destroyProcess()
 
-                        log("Cancelled by user")
                         val result = ExecutionResult(
                             success = false,
                             output = outputBuilder.toString(),
@@ -197,13 +200,13 @@ class OpencodeService {
                         ApplicationManager.getApplication().invokeLater {
                             onComplete(result)
                         }
+                        return
                     }
-                    Thread.sleep(100)
                 }
 
                 val exitCode = processHandler.exitCode ?: -1
+                log("Done with exit code: $exitCode")
 
-                log("Done")
                 val result = if (exitCode == 0 && context.tmpFile.exists()) {
                     val tempOutput = context.tmpFile.readText().trim()
                     ExecutionResult(
@@ -221,6 +224,7 @@ class OpencodeService {
                         exitCode = exitCode
                     )
                 }
+
                 ApplicationManager.getApplication().invokeLater {
                     onComplete(result)
                 }
