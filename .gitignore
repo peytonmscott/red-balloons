@@ -1,4 +1,4 @@
-tmp/
+/tmp/
 .opencode/plugin_output.txt
 local.properties
 # Gradle
@@ -22,4 +22,4 @@ Thumbs.db
 # Logs
 *.log
 
-.settings
+.settings/
