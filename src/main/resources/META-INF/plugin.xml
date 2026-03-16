@@ -30,7 +30,7 @@
 
         <!-- Search Results Tool Window -->
         <toolWindow anchor="bottom" factoryClass="com.redballoons.plugin.ui.SearchResultsToolWindowFactory"
-            icon="AllIcons.Actions.Find" id="Red Balloons Search" secondary="true" />
+            icon="AllIcons.Actions.Find" id="Red Balloons Results" secondary="true" />
     </extensions>
 
     <actions>

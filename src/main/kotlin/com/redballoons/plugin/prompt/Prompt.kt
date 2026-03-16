@@ -35,4 +35,17 @@ object Prompt {
         )
         return context
     }
+
+    fun vibe(project: Project):Context {
+        val settings = RedBalloonsSettings.getInstance()
+        val context = Context(
+            workingDirectory = project.basePath ?: ".",
+            model = settings.modelName,
+        )
+        context.operation = Operation.VIBE
+        context.data = ContextData.Vibe(
+            project = project,
+        )
+        return context
+    }
 }

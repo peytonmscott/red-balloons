@@ -68,7 +68,7 @@ class SearchResultsPanel(private val project: Project) : JPanel(BorderLayout()) 
             addActionListener {
                 clearResults()
                 // Close the tool window panel
-                ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Search")?.hide()
+                ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Results")?.hide()
             }
         }
 

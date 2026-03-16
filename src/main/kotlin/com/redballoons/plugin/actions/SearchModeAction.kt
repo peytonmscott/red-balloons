@@ -49,7 +49,7 @@ class SearchModeAction : AnAction() {
                     "Search Results"
                 )
             } else {
-                val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Search")
+                val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Results")
 
                 toolWindow?.let { tw ->
                     tw.show {

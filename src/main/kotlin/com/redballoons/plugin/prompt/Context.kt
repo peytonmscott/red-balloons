@@ -24,9 +24,9 @@ sealed class ContextData(open val project: Project) {
         val response: String = "",
     ) : ContextData(project)
 
-    data class Custom(
+    data class Vibe(
         override val project: Project,
-        val properties: Map<String, Any>,
+        val quickFixItems: List<SearchResult> = emptyList(),
     ) : ContextData(project)
 }
 

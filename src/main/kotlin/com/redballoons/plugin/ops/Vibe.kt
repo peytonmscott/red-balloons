@@ -5,20 +5,23 @@ import com.redballoons.plugin.prompt.Context
 import com.redballoons.plugin.prompt.ContextData
 import com.redballoons.plugin.prompt.PromptStrings
 
-object Search {
+object Vibe {
     operator fun invoke(context: Context, cb: () -> Unit) {
-        val systemPrompt = PromptStrings.semanticSearch()
+        val prompt = MakePrompt(context, PromptStrings.vibe())
 
-        val prompt = MakePrompt(context, systemPrompt)
         context.addPromptContent(prompt)
+        //context:add_references(refs)
+        // TODO: cleanup is the function that remove the visual indicator for
+        // the seleccion
+        //context:add_clean_up(clean_up)
 
         context.startRequest { result ->
-            val searchResults = SearchResult.parseSearchOutput(
+            val changedFiles = SearchResult.parseSearchOutput(
                 result.output,
                 context.workingDirectory
             )
-            context.data = (context.data as ContextData.Search).copy(
-                quickFixItems = searchResults
+            context.data = (context.data as ContextData.Vibe).copy(
+                quickFixItems = changedFiles
             )
             cb()
         }

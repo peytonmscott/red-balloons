@@ -6,8 +6,15 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.wm.ToolWindowManager
+import com.redballoons.plugin.ops.Search
+import com.redballoons.plugin.ops.Search.invoke
+import com.redballoons.plugin.ops.Vibe
+import com.redballoons.plugin.prompt.ContextData
+import com.redballoons.plugin.prompt.Prompt
 import com.redballoons.plugin.services.OpencodeService
 import com.redballoons.plugin.ui.PromptPopup
+import com.redballoons.plugin.ui.SearchResultsPanel
 
 /**
  * Vibe Mode Action (Ctrl+Alt+V)
@@ -31,31 +38,34 @@ class VibeModeAction : AnAction() {
         popup.show()
     }
 
-    private fun executeVibeMode(e: AnActionEvent, prompt: String) {
+    private fun executeVibeMode(e: AnActionEvent, userPrompt: String) {
         val project = e.project ?: return
+        val context = Prompt.vibe(project)
 
-        // TODO bring back vibe
-//        val service = OpencodeService.getInstance()
-//
-//        service.execute(
-//            project = project,
-//            prompt = prompt,
-//            mode = OpencodeService.ExecutionMode.VIBE,
-//            workingDirectory = project.basePath
-//        ) { result ->
-//            // Refresh the VFS so IDE detects disk changes
-//            VirtualFileManager.getInstance().asyncRefresh {
-//                if (!result.success) {
-//                    val errorMsg = result.error.ifBlank { "Vibe mode completed with errors" }
-//                    Messages.showErrorDialog(project, errorMsg, "Opencode Error")
-//                } else {
-//                    // Optionally show a success notification
-//                    JBPopupFactory.getInstance()
-//                        .createMessage("Vibe mode completed!")
-//                        .showInFocusCenter()
-//                }
-//            }
-//        }
+        context.userPrompt = userPrompt
+
+        Vibe(context) {
+            val searchData: ContextData.Vibe = context.data as ContextData.Vibe
+            if (searchData.quickFixItems.isEmpty()) {
+                Messages.showInfoMessage(
+                    project,
+                    "No results found for: $userPrompt",
+                    "Search Results"
+                )
+            } else {
+                VirtualFileManager.getInstance().asyncRefresh {
+                    val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("Red Balloons Results")
+
+                    toolWindow?.let { tw ->
+                        tw.show {
+                            val content = tw.contentManager.getContent(0)
+                            val panel = content?.component as? SearchResultsPanel
+                            panel?.setResults(searchData.quickFixItems, userPrompt)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     override fun update(e: AnActionEvent) {
